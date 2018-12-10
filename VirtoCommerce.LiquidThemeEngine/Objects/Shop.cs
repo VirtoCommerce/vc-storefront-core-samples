@@ -25,7 +25,7 @@ namespace VirtoCommerce.LiquidThemeEngine.Objects
         [DataMember]
         public string Currency { get; set; }
 
-        
+
         public IMutablePagedList<Collection> Collections { get; set; }
 
         /// <summary>
@@ -92,6 +92,9 @@ namespace VirtoCommerce.LiquidThemeEngine.Objects
         /// </summary>
         [DataMember]
         public string Catalog { get; set; }
+
+        [DataMember]
+        public bool CustomerReviewsEnabled { get; internal set; }
 
         [DataMember]
         public bool QuotesEnabled { get; set; }
