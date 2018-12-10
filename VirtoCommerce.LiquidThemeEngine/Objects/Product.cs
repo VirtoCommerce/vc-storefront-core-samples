@@ -41,12 +41,15 @@ namespace VirtoCommerce.LiquidThemeEngine.Objects
         [DataMember]
         public bool Available { get; set; }
 
-         /// <summary>
-         ///  Returns true if a product is buyable
-         /// </summary>
+        [DataMember]
+        public long AvailableQuantity { get; set; }
+
+        /// <summary>
+        ///  Returns true if a product is buyable
+        /// </summary>
         [DataMember]
         public bool Buyable { get; set; }
-  
+
         /// <summary>
         ///  Returns true if a product is instock
         /// </summary>
@@ -299,6 +302,21 @@ namespace VirtoCommerce.LiquidThemeEngine.Objects
         /// </summary>
         public string Outline { get; set; }
 
+        /// <summary>
+        /// Product code
+        /// </summary>
+        public string Sku { get; set; }
+
+
+        /// <summary>
+        /// Association type Related, Associations, Up-Sales etc.
+        /// </summary>
+        public string AssociationType { get; set; }
+
+        /// <summary>
+        /// Association quantity
+        /// </summary>
+        public int? AssociationQuantity { get; set; }
 
     }
 }
