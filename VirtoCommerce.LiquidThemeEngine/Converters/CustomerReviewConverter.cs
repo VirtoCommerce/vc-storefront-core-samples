@@ -1,12 +1,12 @@
 using VirtoCommerce.LiquidThemeEngine.Objects;
+using storefrontModel = VirtoCommerce.Storefront.Model.CustomerReviews;
 
 namespace VirtoCommerce.LiquidThemeEngine.Converters
 {
-    using CustomerReviewStorefront = VirtoCommerce.Storefront.Model.CustomerReviews.CustomerReview;
 
     public static class CustomerReviewStaticConverter
     {
-        public static CustomerReview ToShopifyModel(this CustomerReviewStorefront item)
+        public static CustomerReview ToShopifyModel(this storefrontModel.CustomerReview item)
         {
             return new ShopifyModelConverter().ToLiquidCustomerReview(item);
         }
@@ -14,7 +14,7 @@ namespace VirtoCommerce.LiquidThemeEngine.Converters
 
     public partial class ShopifyModelConverter
     {
-        public virtual CustomerReview ToLiquidCustomerReview(CustomerReviewStorefront item)
+        public virtual CustomerReview ToLiquidCustomerReview(storefrontModel.CustomerReview item)
         {
             return new CustomerReview
             {

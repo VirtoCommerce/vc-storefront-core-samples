@@ -1,9 +1,10 @@
 using VirtoCommerce.Storefront.Model.CustomerReviews;
+using reviewDto = VirtoCommerce.Storefront.AutoRestClients.External.CustomerReviewsModuleModuleApi.Models;
 
 namespace VirtoCommerce.Storefront.Domain.CustomerReviews
 {
-    using CustomerReviewDTO = AutoRestClients.External.CustomerReviewsModuleModuleApi.Models.CustomerReview;
-    using CustomerReviewSearchCriteriaDTO = AutoRestClients.External.CustomerReviewsModuleModuleApi.Models.CustomerReviewSearchCriteria;
+    using CustomerReviewDTO = reviewDto.CustomerReview;
+    using CustomerReviewSearchCriteriaDTO = reviewDto.CustomerReviewSearchCriteria;
 
     public static partial class CustomerReviewConverter
     {
