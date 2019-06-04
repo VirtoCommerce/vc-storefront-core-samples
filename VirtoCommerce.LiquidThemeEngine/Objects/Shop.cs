@@ -94,6 +94,9 @@ namespace VirtoCommerce.LiquidThemeEngine.Objects
         public string Catalog { get; set; }
 
         [DataMember]
+        public bool CustomerReviewsEnabled { get; internal set; }
+
+        [DataMember]
         public bool QuotesEnabled { get; set; }
 
         [DataMember]
