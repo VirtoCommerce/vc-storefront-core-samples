@@ -16,6 +16,8 @@ namespace VirtoCommerce.Storefront.Model.Catalog
             Currency = currency;
             ListPrice = new Money(currency);
             SalePrice = new Money(currency);
+            BasePrice = new Money(currency);
+            CurrentPrice = new Money(currency);
             DiscountAmount = new Money(currency);
             TierPrices = new List<TierPrice>();
             Discounts = new List<Discount>();
@@ -52,9 +54,9 @@ namespace VirtoCommerce.Storefront.Model.Catalog
         {
             get
             {
-                if (ListPrice.Amount > 0)
+                if (CurrentPrice.Amount > 0)
                 {
-                    return Math.Round(DiscountAmount.Amount / ListPrice.Amount, 2);
+                    return Math.Round(DiscountAmount.Amount / CurrentPrice.Amount, 2);
                 }
                 return 0;
             }
@@ -64,6 +66,16 @@ namespace VirtoCommerce.Storefront.Model.Catalog
         /// Original product price (old price)
         /// </summary>
         public Money ListPrice { get; set; }
+
+        /// <summary>
+        /// Basic product price (old price)
+        /// </summary>
+        public Money BasePrice { get; set; }
+
+        /// <summary>
+        /// Current product price (old price)
+        /// </summary>
+        public Money CurrentPrice { get; set; }
         /// <summary>
         /// Original product price (old price) including tax 
         /// </summary>
@@ -71,7 +83,7 @@ namespace VirtoCommerce.Storefront.Model.Catalog
         {
             get
             {
-                return ListPrice + ListPrice * TaxPercentRate;
+                return CurrentPrice + CurrentPrice * TaxPercentRate;
             }
         }
 
@@ -98,7 +110,7 @@ namespace VirtoCommerce.Storefront.Model.Catalog
         {
             get
             {
-                return ListPrice - DiscountAmount;
+                return CurrentPrice - DiscountAmount;
             }
         }
 
@@ -197,6 +209,8 @@ namespace VirtoCommerce.Storefront.Model.Catalog
             {
                 ListPrice = ListPrice.ConvertTo(currency),
                 SalePrice = SalePrice.ConvertTo(currency),
+                BasePrice = BasePrice.ConvertTo(currency),
+                CurrentPrice = CurrentPrice.ConvertTo(currency),
                 DiscountAmount = DiscountAmount.ConvertTo(currency),
                 ProductId = ProductId
             };
