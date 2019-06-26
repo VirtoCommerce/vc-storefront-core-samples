@@ -430,7 +430,7 @@ namespace VirtoCommerce.Storefront.Domain
             if (product.Price != null)
             {
                 result.Discount = (double)product.Price.DiscountAmount.Amount;
-                result.Price = (double)product.Price.SalePrice.Amount;
+                result.Price = (double)product.Price.MinPrice.Amount;
             }
 
             return result;
@@ -473,7 +473,7 @@ namespace VirtoCommerce.Storefront.Domain
                     Name = product.Name,
                     TaxType = product.TaxType,
                     //Special case when product have 100% discount and need to calculate tax for old value
-                    Amount =  product.Price.ActualPrice.Amount > 0 ? product.Price.ActualPrice : product.Price.SalePrice
+                    Amount =  product.Price.ActualPrice.Amount > 0 ? product.Price.ActualPrice : product.Price.MinPrice
                 }
             };
 

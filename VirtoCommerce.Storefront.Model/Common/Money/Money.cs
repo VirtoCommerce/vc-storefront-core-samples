@@ -389,6 +389,16 @@ namespace VirtoCommerce.Storefront.Model.Common
             return results;
         }
 
+        public Money Min(Money money)
+        {
+            return this > money ? money : this;
+        }
+
+        public Money Max(Money money)
+        {
+            return this > money ? this : money;
+        }
+
         #endregion
 
         #region IConvertible<Money> Members

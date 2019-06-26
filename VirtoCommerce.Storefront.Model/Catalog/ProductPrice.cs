@@ -17,7 +17,8 @@ namespace VirtoCommerce.Storefront.Model.Catalog
             ListPrice = new Money(currency);
             SalePrice = new Money(currency);
             BasePrice = new Money(currency);
-            CurrentPrice = new Money(currency);
+            MinPrice = new Money(currency);
+            MaxPrice = new Money(currency);
             DiscountAmount = new Money(currency);
             TierPrices = new List<TierPrice>();
             Discounts = new List<Discount>();
@@ -54,9 +55,9 @@ namespace VirtoCommerce.Storefront.Model.Catalog
         {
             get
             {
-                if (CurrentPrice.Amount > 0)
+                if (MaxPrice.Amount > 0)
                 {
-                    return Math.Round(DiscountAmount.Amount / CurrentPrice.Amount, 2);
+                    return Math.Round(DiscountAmount.Amount / MaxPrice.Amount, 2);
                 }
                 return 0;
             }
@@ -68,38 +69,36 @@ namespace VirtoCommerce.Storefront.Model.Catalog
         public Money ListPrice { get; set; }
 
         /// <summary>
-        /// Basic product price (old price)
-        /// </summary>
-        public Money BasePrice { get; set; }
-
-        /// <summary>
-        /// Current product price (old price)
-        /// </summary>
-        public Money CurrentPrice { get; set; }
-        /// <summary>
-        /// Original product price (old price) including tax 
-        /// </summary>
-        public Money ListPriceWithTax
-        {
-            get
-            {
-                return CurrentPrice + CurrentPrice * TaxPercentRate;
-            }
-        }
-
-        /// <summary>
         /// Sale product price (new price)
         /// </summary>
         public Money SalePrice { get; set; }
 
         /// <summary>
-        /// Sale product price (new price) including tax 
+        /// Base product price
         /// </summary>
-        public Money SalePriceWithTax
+        public Money BasePrice { get; set; }
+
+        public Money MaxPrice { get; set; }
+        /// <summary>
+        /// Original product price (old price) including tax 
+        /// </summary>
+        public Money MaxPriceWithTax
         {
             get
             {
-                return SalePrice + SalePrice * TaxPercentRate;
+                return MaxPrice + MaxPrice * TaxPercentRate;
+            }
+        }
+
+        public Money MinPrice { get; set; }
+        /// <summary>
+        /// Sale product price (new price) including tax 
+        /// </summary>
+        public Money MinPriceWithTax
+        {
+            get
+            {
+                return MinPrice + MinPrice * TaxPercentRate;
             }
         }
 
@@ -110,7 +109,7 @@ namespace VirtoCommerce.Storefront.Model.Catalog
         {
             get
             {
-                return CurrentPrice - DiscountAmount;
+                return MaxPrice - DiscountAmount;
             }
         }
 
@@ -121,7 +120,7 @@ namespace VirtoCommerce.Storefront.Model.Catalog
         {
             get
             {
-                return ListPriceWithTax - DiscountAmountWithTax;
+                return MaxPriceWithTax - DiscountAmountWithTax;
             }
         }
 
@@ -147,7 +146,7 @@ namespace VirtoCommerce.Storefront.Model.Catalog
             var retVal = TierPrices.OrderBy(x => x.Quantity).LastOrDefault(x => x.Quantity <= quantity);
             if (retVal == null)
             {
-                retVal = new TierPrice(SalePrice, 1);
+                retVal = new TierPrice(MinPrice, 1);
             }
             return retVal;
         }
@@ -184,7 +183,7 @@ namespace VirtoCommerce.Storefront.Model.Catalog
             var taxRate = taxRates.FirstOrDefault(x => x.Line.Quantity == 0);
             if (taxRate != null && taxRate.Rate.Amount > 0)
             {
-                var amount = ActualPrice.Amount > 0 ? ActualPrice.Amount : SalePrice.Amount;
+                var amount = ActualPrice.Amount > 0 ? ActualPrice.Amount : MinPrice.Amount;
                 if (amount > 0)
                 {
                     TaxPercentRate = TaxRate.TaxPercentRound(taxRate.Rate.Amount / amount);
@@ -210,7 +209,8 @@ namespace VirtoCommerce.Storefront.Model.Catalog
                 ListPrice = ListPrice.ConvertTo(currency),
                 SalePrice = SalePrice.ConvertTo(currency),
                 BasePrice = BasePrice.ConvertTo(currency),
-                CurrentPrice = CurrentPrice.ConvertTo(currency),
+                MinPrice = MinPrice.ConvertTo(currency),
+                MaxPrice = MaxPrice.ConvertTo(currency),
                 DiscountAmount = DiscountAmount.ConvertTo(currency),
                 ProductId = ProductId
             };
@@ -226,6 +226,9 @@ namespace VirtoCommerce.Storefront.Model.Catalog
             yield return MinQuantity;
             yield return ListPrice;
             yield return SalePrice;
+            yield return BasePrice;
+            yield return MinPrice;
+            yield return MaxPrice;
             yield return DiscountAmount;
             yield return PricelistId;
             yield return TaxPercentRate;
