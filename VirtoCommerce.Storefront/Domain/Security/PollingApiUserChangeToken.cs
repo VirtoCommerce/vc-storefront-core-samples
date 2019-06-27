@@ -1,33 +1,31 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
-using System.Threading.Tasks;
 using Microsoft.Extensions.Primitives;
-using VirtoCommerce.Storefront.AutoRestClients.SubscriptionModuleApi;
+using VirtoCommerce.Storefront.AutoRestClients.PlatformModuleApi;
+using VirtoCommerce.Storefront.AutoRestClients.PlatformModuleApi.Models;
 using VirtoCommerce.Storefront.Model.Common;
-using VirtoCommerce.Storefront.Model.Subscriptions;
 
-namespace VirtoCommerce.Storefront.Domain.Subscriptions
+namespace VirtoCommerce.Storefront.Domain.Security
 {
-    public class PoolingApiSubscriptionsChangeToken : IChangeToken
+    public sealed class PollingApiUserChangeToken : IChangeToken
     {
-        private readonly ISubscriptionModule _subscriptionApi;
+        private readonly ISecurity _platformSecurityApi;
         private static DateTime _previousChangeTimeUtcStatic;
         private static DateTime _lastCheckedTimeUtcStatic;
-        private DateTime _previousChangeTimeUtc;
-        private readonly TimeSpan _poolingInterval;
-        private static readonly object _lock = new object();
+        private readonly TimeSpan _pollingInterval;
 
-        static PoolingApiSubscriptionsChangeToken()
+        private readonly object _lock = new object();
+
+        static PollingApiUserChangeToken()
         {
             _previousChangeTimeUtcStatic = _lastCheckedTimeUtcStatic = DateTime.UtcNow;
         }
-        public PoolingApiSubscriptionsChangeToken(ISubscriptionModule subscriptionApi, TimeSpan poolingInterval)
+
+        public PollingApiUserChangeToken(ISecurity platformSecurityApi, TimeSpan pollingInterval)
         {
-            _poolingInterval = poolingInterval;
-            _subscriptionApi = subscriptionApi;
-            _previousChangeTimeUtc = _previousChangeTimeUtcStatic;
+            _pollingInterval = pollingInterval;
+            _platformSecurityApi = platformSecurityApi;
         }
 
         /// <summary>
@@ -40,30 +38,30 @@ namespace VirtoCommerce.Storefront.Domain.Subscriptions
             get
             {
                 var currentTime = DateTime.UtcNow;
-                if (currentTime - _lastCheckedTimeUtcStatic < _poolingInterval)
+                if (currentTime - _lastCheckedTimeUtcStatic < _pollingInterval)
                 {
                     return false;
                 }
 
-                //Need to prevent API flood for multiple token instances
                 var lockTaken = Monitor.TryEnter(_lock);
                 try
                 {
+                    //Do not wait if is locked by another thread 
                     if (lockTaken)
                     {
-                        var result = _subscriptionApi.SearchSubscriptions(new AutoRestClients.SubscriptionModuleApi.Models.SubscriptionSearchCriteria
+                        var result = _platformSecurityApi.SearchUsersAsync(new UserSearchRequest()
                         {
-                            Skip = 0,
-                            Take = int.MaxValue,
-                            ResponseGroup = ((int)SubscriptionResponseGroup.Default).ToString(),
+                            SkipCount = 0,
+                            TakeCount = int.MaxValue,
                             ModifiedSinceDate = _previousChangeTimeUtcStatic
                         });
+
                         if (result.TotalCount > 0)
                         {
                             _previousChangeTimeUtcStatic = currentTime;
-                            foreach (var customerId in result.Subscriptions.Select(x => x.CustomerId))
+                            foreach (var userId in result.Users.Select(x => x.Id))
                             {
-                                SubscriptionCacheRegion.ExpireCustomerSubscription(customerId);
+                                SecurityCacheRegion.ExpireUser(userId);
                             }
                         }
                         _lastCheckedTimeUtcStatic = currentTime;
@@ -76,7 +74,6 @@ namespace VirtoCommerce.Storefront.Domain.Subscriptions
                         Monitor.Exit(_lock);
                     }
                 }
-                //Always return false, do expiration only through direct SubscriptionCacheRegion.ExpireCustomerSubscription call
                 return false;
             }
         }
