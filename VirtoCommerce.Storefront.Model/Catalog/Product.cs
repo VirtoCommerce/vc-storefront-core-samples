@@ -302,10 +302,10 @@ namespace VirtoCommerce.Storefront.Model.Catalog
             foreach (var currencyGroup in groupByCurrencyPrices)
             {
                 //For each currency need get nominal price (with min qty)
-                var orderedPrices = currencyGroup.OrderBy(x => x.MinQuantity ?? 0).ThenBy(x => x.ListPrice);
+                var orderedPrices = currencyGroup.OrderBy(x => x.MinQuantity ?? 0).ThenBy(x => x.MaxPrice);
                 var nominalPrice = orderedPrices.FirstOrDefault();
                 //and add to nominal price other prices as tier prices
-                nominalPrice.TierPrices.AddRange(orderedPrices.Select(x => new TierPrice(x.SalePrice, x.MinQuantity ?? 1)));
+                nominalPrice.TierPrices.AddRange(orderedPrices.Select(x => new TierPrice(x.MinPrice, x.MinQuantity ?? 1)));
                 //Add nominal price to product prices list 
                 Prices.Add(nominalPrice);
             }
@@ -329,7 +329,7 @@ namespace VirtoCommerce.Storefront.Model.Catalog
                     if (Prices.Any())
                     {
                         price = Prices.First().ConvertTo(currency);
-                        price.TierPrices.Add(new TierPrice(price.SalePrice, 1));
+                        price.TierPrices.Add(new TierPrice(price.MinPrice, 1));
                     }
                     Prices.Add(price);
                 }
@@ -396,15 +396,15 @@ namespace VirtoCommerce.Storefront.Model.Catalog
             }
 
             Discounts.Clear();
-            Price.DiscountAmount = new Money(Math.Max(0, (Price.ListPrice - Price.SalePrice).Amount), Currency);
+            Price.DiscountAmount = new Money(Math.Max(0, (Price.MaxPrice - Price.MinPrice).Amount), Currency);
 
             foreach (var reward in productRewards)
             {
                 //Initialize tier price discount amount by default values
-                var discount = reward.ToDiscountModel(Price.ListPrice - Price.DiscountAmount);
+                var discount = reward.ToDiscountModel(Price.MaxPrice - Price.DiscountAmount);
                 foreach (var tierPrice in Price.TierPrices)
                 {
-                    tierPrice.DiscountAmount = new Money(Math.Max(0, (Price.ListPrice - tierPrice.Price).Amount), Currency);
+                    tierPrice.DiscountAmount = new Money(Math.Max(0, (Price.MaxPrice - tierPrice.Price).Amount), Currency);
                 }
 
                 if (reward.IsValid)

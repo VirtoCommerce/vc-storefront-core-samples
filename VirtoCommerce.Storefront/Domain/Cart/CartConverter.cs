@@ -637,7 +637,7 @@ namespace VirtoCommerce.Storefront.Domain
 
                 ImageUrl = product.PrimaryImage?.Url,
                 ThumbnailImageUrl = product.PrimaryImage?.Url,
-                ListPrice = product.Price.ListPrice,
+                ListPrice = product.Price.MaxPrice,
                 SalePrice = product.Price.GetTierPrice(quantity).Price,
                 TaxPercentRate = product.Price.TaxPercentRate,
                 DiscountAmount = product.Price.DiscountAmount,

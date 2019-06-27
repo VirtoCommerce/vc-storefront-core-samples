@@ -74,8 +74,8 @@ namespace VirtoCommerce.LiquidThemeEngine.Converters
             result.CompareAtPriceMin = result.Variants.Select(x => x.CompareAtPrice).Min();
             result.CompareAtPriceVaries = result.CompareAtPriceMax != result.CompareAtPriceMin;
 
-            result.CompareAtPrice = product.Price.ListPrice.Amount * 100;
-            result.CompareAtPriceWithTax = product.Price.ListPriceWithTax.Amount * 100;
+            result.CompareAtPrice = product.Price.MaxPrice.Amount * 100;
+            result.CompareAtPriceWithTax = product.Price.MaxPriceWithTax.Amount * 100;
             result.Price = product.Price.ActualPrice.Amount * 100;
             result.PriceWithTax = product.Price.ActualPriceWithTax.Amount * 100;
 
@@ -166,8 +166,8 @@ namespace VirtoCommerce.LiquidThemeEngine.Converters
                 InventoryPolicy = product.TrackInventory ? "deny" : "continue",
                 InventoryQuantity = product.Inventory != null ? Math.Max(0, (product.Inventory.InStockQuantity ?? 0L) - (product.Inventory.ReservedQuantity ?? 0L)) : 0,
                 Options = product.VariationProperties.Where(p => !string.IsNullOrEmpty(p.Value)).Select(p => p.Value).ToArray(),
-                CompareAtPrice = product.Price.ListPrice.Amount * 100,
-                CompareAtPriceWithTax = product.Price.ListPriceWithTax.Amount * 100,
+                CompareAtPrice = product.Price.MaxPrice.Amount * 100,
+                CompareAtPriceWithTax = product.Price.MaxPriceWithTax.Amount * 100,
                 Price = product.Price.ActualPrice.Amount * 100,
                 PriceWithTax = product.Price.ActualPriceWithTax.Amount * 100,
                 Selected = false,

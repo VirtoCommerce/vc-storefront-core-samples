@@ -42,6 +42,11 @@ namespace VirtoCommerce.Storefront.Domain
             result.Currency = currency;
             result.ListPrice = new Money(priceDto.List ?? 0d, currency);
             result.SalePrice = priceDto.Sale == null ? result.ListPrice : new Money(priceDto.Sale ?? 0d, currency);
+            result.BasePrice = priceDto.BasePrice == null ? result.ListPrice : new Money(priceDto.BasePrice ?? 0d, currency);
+
+            result.MinPrice = result.ListPrice.Min(result.BasePrice).Min(result.SalePrice);
+            result.MaxPrice = result.ListPrice.Max(result.BasePrice).Max(result.SalePrice);
+
             result.MinQuantity = priceDto.MinQuantity;
             return result;
         }

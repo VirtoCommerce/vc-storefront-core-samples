@@ -382,11 +382,11 @@ namespace VirtoCommerce.Storefront.Domain
                 Currency = currency,
 
                 ImageUrl = product.PrimaryImage != null ? product.PrimaryImage.Url : null,
-                ListPrice = product.Price.ListPrice,
+                ListPrice = product.Price.MaxPrice,
                 ProductId = product.Id,
-                SalePrice = product.Price.SalePrice
+                SalePrice = product.Price.MinPrice
             };
-            retVal.ProposalPrices.Add(new TierPrice(product.Price.SalePrice, quantity));
+            retVal.ProposalPrices.Add(new TierPrice(product.Price.MinPrice, quantity));
             retVal.SelectedTierPrice = retVal.ProposalPrices.First();
 
             return retVal;
