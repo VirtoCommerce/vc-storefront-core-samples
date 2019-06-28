@@ -52,6 +52,19 @@ namespace VirtoCommerce.Storefront.AutoRestClients.MarketingModuleApi
         /// <summary>
         /// Initializes a new instance of the VirtoCommerceMarketingRESTAPIdocumentation class.
         /// </summary>
+        /// <param name='httpClient'>
+        /// HttpClient to be used
+        /// </param>
+        /// <param name='disposeHttpClient'>
+        /// True: will dispose the provided httpClient on calling VirtoCommerceMarketingRESTAPIdocumentation.Dispose(). False: will not dispose provided httpClient</param>
+        protected VirtoCommerceMarketingRESTAPIdocumentation(HttpClient httpClient, bool disposeHttpClient) : base(httpClient, disposeHttpClient)
+        {
+            Initialize();
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the VirtoCommerceMarketingRESTAPIdocumentation class.
+        /// </summary>
         /// <param name='handlers'>
         /// Optional. The delegating handlers to add to the http client pipeline.
         /// </param>
@@ -132,6 +145,33 @@ namespace VirtoCommerce.Storefront.AutoRestClients.MarketingModuleApi
         /// Thrown when a required parameter is null
         /// </exception>
         public VirtoCommerceMarketingRESTAPIdocumentation(ServiceClientCredentials credentials, params DelegatingHandler[] handlers) : this(handlers)
+        {
+            if (credentials == null)
+            {
+                throw new System.ArgumentNullException("credentials");
+            }
+            Credentials = credentials;
+            if (Credentials != null)
+            {
+                Credentials.InitializeServiceClient(this);
+            }
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the VirtoCommerceMarketingRESTAPIdocumentation class.
+        /// </summary>
+        /// <param name='credentials'>
+        /// Required. Subscription credentials which uniquely identify client subscription.
+        /// </param>
+        /// <param name='httpClient'>
+        /// HttpClient to be used
+        /// </param>
+        /// <param name='disposeHttpClient'>
+        /// True: will dispose the provided httpClient on calling VirtoCommerceMarketingRESTAPIdocumentation.Dispose(). False: will not dispose provided httpClient</param>
+        /// <exception cref="System.ArgumentNullException">
+        /// Thrown when a required parameter is null
+        /// </exception>
+        public VirtoCommerceMarketingRESTAPIdocumentation(ServiceClientCredentials credentials, HttpClient httpClient, bool disposeHttpClient) : this(httpClient, disposeHttpClient)
         {
             if (credentials == null)
             {
@@ -7861,10 +7901,17 @@ namespace VirtoCommerce.Storefront.AutoRestClients.MarketingModuleApi.Models
         /// <summary>
         /// Initializes a new instance of the DynamicPropertyObjectValue class.
         /// </summary>
-        public DynamicPropertyObjectValue(string locale = default(string), object value = default(object))
+        /// <param name="valueType">Possible values include: 'Undefined',
+        /// 'ShortText', 'LongText', 'Integer', 'Decimal', 'DateTime',
+        /// 'Boolean', 'Html', 'Image'</param>
+        public DynamicPropertyObjectValue(string objectType = default(string), string objectId = default(string), string locale = default(string), object value = default(object), string valueId = default(string), string valueType = default(string))
         {
+            ObjectType = objectType;
+            ObjectId = objectId;
             Locale = locale;
             Value = value;
+            ValueId = valueId;
+            ValueType = valueType;
             CustomInit();
         }
 
@@ -7875,6 +7922,16 @@ namespace VirtoCommerce.Storefront.AutoRestClients.MarketingModuleApi.Models
 
         /// <summary>
         /// </summary>
+        [JsonProperty(PropertyName = "objectType")]
+        public string ObjectType { get; set; }
+
+        /// <summary>
+        /// </summary>
+        [JsonProperty(PropertyName = "objectId")]
+        public string ObjectId { get; set; }
+
+        /// <summary>
+        /// </summary>
         [JsonProperty(PropertyName = "locale")]
         public string Locale { get; set; }
 
@@ -7882,6 +7939,19 @@ namespace VirtoCommerce.Storefront.AutoRestClients.MarketingModuleApi.Models
         /// </summary>
         [JsonProperty(PropertyName = "value")]
         public object Value { get; set; }
+
+        /// <summary>
+        /// </summary>
+        [JsonProperty(PropertyName = "valueId")]
+        public string ValueId { get; set; }
+
+        /// <summary>
+        /// Gets or sets possible values include: 'Undefined', 'ShortText',
+        /// 'LongText', 'Integer', 'Decimal', 'DateTime', 'Boolean', 'Html',
+        /// 'Image'
+        /// </summary>
+        [JsonProperty(PropertyName = "valueType")]
+        public string ValueType { get; set; }
 
     }
 }
@@ -9891,6 +9961,9 @@ namespace VirtoCommerce.Storefront.AutoRestClients.MarketingModuleApi.Models
         /// id</param>
         /// <param name="productId">Gets or sets the value of product
         /// id</param>
+        /// <param name="conditionalProductId">Conditional product
+        /// For N items of entry ProductId  in every Y items of entry
+        /// ConditionalProductId get %X off</param>
         /// <param name="categoryId">Gets or sets the value of category
         /// id</param>
         /// <param name="measureUnit">Gets or sets the value of measurement
@@ -9901,7 +9974,7 @@ namespace VirtoCommerce.Storefront.AutoRestClients.MarketingModuleApi.Models
         /// shipping method code</param>
         /// <param name="maxLimit">Gets or sets the max limit for relative
         /// rewards</param>
-        public PromotionReward(bool? isValid = default(bool?), string description = default(string), double? couponAmount = default(double?), string coupon = default(string), double? couponMinOrderAmount = default(double?), string promotionId = default(string), Promotion promotion = default(Promotion), string rewardType = default(string), string amountType = default(string), double? amount = default(double?), int? quantity = default(int?), string lineItemId = default(string), string productId = default(string), string categoryId = default(string), string measureUnit = default(string), string imageUrl = default(string), string shippingMethod = default(string), double? maxLimit = default(double?))
+        public PromotionReward(bool? isValid = default(bool?), string description = default(string), double? couponAmount = default(double?), string coupon = default(string), double? couponMinOrderAmount = default(double?), string promotionId = default(string), Promotion promotion = default(Promotion), string rewardType = default(string), string amountType = default(string), double? amount = default(double?), int? quantity = default(int?), string lineItemId = default(string), string productId = default(string), string conditionalProductId = default(string), string categoryId = default(string), string measureUnit = default(string), string imageUrl = default(string), string shippingMethod = default(string), double? maxLimit = default(double?), int? forNthQuantity = default(int?), int? inEveryNthQuantity = default(int?))
         {
             IsValid = isValid;
             Description = description;
@@ -9916,11 +9989,14 @@ namespace VirtoCommerce.Storefront.AutoRestClients.MarketingModuleApi.Models
             Quantity = quantity;
             LineItemId = lineItemId;
             ProductId = productId;
+            ConditionalProductId = conditionalProductId;
             CategoryId = categoryId;
             MeasureUnit = measureUnit;
             ImageUrl = imageUrl;
             ShippingMethod = shippingMethod;
             MaxLimit = maxLimit;
+            ForNthQuantity = forNthQuantity;
+            InEveryNthQuantity = inEveryNthQuantity;
             CustomInit();
         }
 
@@ -10012,6 +10088,14 @@ namespace VirtoCommerce.Storefront.AutoRestClients.MarketingModuleApi.Models
         public string ProductId { get; set; }
 
         /// <summary>
+        /// Gets or sets conditional product
+        /// For N items of entry ProductId  in every Y items of entry
+        /// ConditionalProductId get %X off
+        /// </summary>
+        [JsonProperty(PropertyName = "conditionalProductId")]
+        public string ConditionalProductId { get; set; }
+
+        /// <summary>
         /// Gets or sets the value of category id
         /// </summary>
         [JsonProperty(PropertyName = "categoryId")]
@@ -10040,6 +10124,16 @@ namespace VirtoCommerce.Storefront.AutoRestClients.MarketingModuleApi.Models
         /// </summary>
         [JsonProperty(PropertyName = "maxLimit")]
         public double? MaxLimit { get; set; }
+
+        /// <summary>
+        /// </summary>
+        [JsonProperty(PropertyName = "forNthQuantity")]
+        public int? ForNthQuantity { get; set; }
+
+        /// <summary>
+        /// </summary>
+        [JsonProperty(PropertyName = "inEveryNthQuantity")]
+        public int? InEveryNthQuantity { get; set; }
 
     }
 }
@@ -10197,9 +10291,10 @@ namespace VirtoCommerce.Storefront.AutoRestClients.MarketingModuleApi.Models
         /// <summary>
         /// Initializes a new instance of the Coupon class.
         /// </summary>
-        public Coupon(int? maxUsesNumber = default(int?), System.DateTime? expirationDate = default(System.DateTime?), string code = default(string), string promotionId = default(string), long? totalUsesCount = default(long?), System.DateTime? createdDate = default(System.DateTime?), System.DateTime? modifiedDate = default(System.DateTime?), string createdBy = default(string), string modifiedBy = default(string), string id = default(string))
+        public Coupon(int? maxUsesNumber = default(int?), int? maxUsesPerUser = default(int?), System.DateTime? expirationDate = default(System.DateTime?), string code = default(string), string promotionId = default(string), long? totalUsesCount = default(long?), System.DateTime? createdDate = default(System.DateTime?), System.DateTime? modifiedDate = default(System.DateTime?), string createdBy = default(string), string modifiedBy = default(string), string id = default(string))
         {
             MaxUsesNumber = maxUsesNumber;
+            MaxUsesPerUser = maxUsesPerUser;
             ExpirationDate = expirationDate;
             Code = code;
             PromotionId = promotionId;
@@ -10221,6 +10316,11 @@ namespace VirtoCommerce.Storefront.AutoRestClients.MarketingModuleApi.Models
         /// </summary>
         [JsonProperty(PropertyName = "maxUsesNumber")]
         public int? MaxUsesNumber { get; set; }
+
+        /// <summary>
+        /// </summary>
+        [JsonProperty(PropertyName = "maxUsesPerUser")]
+        public int? MaxUsesPerUser { get; set; }
 
         /// <summary>
         /// </summary>

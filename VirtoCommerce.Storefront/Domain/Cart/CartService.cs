@@ -6,12 +6,11 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Caching.Memory;
 using PagedList.Core;
 using VirtoCommerce.Storefront.AutoRestClients.CartModuleApi;
-using VirtoCommerce.Storefront.Caching;
-using VirtoCommerce.Storefront.Extensions;
 using VirtoCommerce.Storefront.Model;
 using VirtoCommerce.Storefront.Model.Caching;
 using VirtoCommerce.Storefront.Model.Cart;
 using VirtoCommerce.Storefront.Model.Cart.Services;
+using VirtoCommerce.Storefront.Model.Common;
 using VirtoCommerce.Storefront.Model.Common.Caching;
 using VirtoCommerce.Storefront.Model.Security;
 
@@ -48,19 +47,27 @@ namespace VirtoCommerce.Storefront.Domain.Cart
             {
                 throw new ArgumentNullException(nameof(cart));
             }
-            var payments = await _cartApi.GetAvailablePaymentMethodsAsync(cart.Id);
-            var result = payments.Select(x => x.ToPaymentMethod(cart)).OrderBy(x => x.Priority).ToList();
+            var result = Enumerable.Empty<PaymentMethod>();
+            if (!cart.IsTransient())
+            {
+                var payments = await _cartApi.GetAvailablePaymentMethodsAsync(cart.Id);
+                result = payments.Select(x => x.ToCartPaymentMethod(cart)).OrderBy(x => x.Priority).ToList();
+            }
             return result;
         }
 
-        public async Task<IEnumerable<ShippingMethod>> GetAvailableShippingMethodsAsync(ShoppingCart cart)
+        public virtual async Task<IEnumerable<ShippingMethod>> GetAvailableShippingMethodsAsync(ShoppingCart cart)
         {
             if (cart == null)
             {
                 throw new ArgumentNullException(nameof(cart));
             }
-            var shippingRates = await _cartApi.GetAvailableShippingRatesAsync(cart.Id);
-            var result = shippingRates.Select(x => x.ToShippingMethod(cart.Currency, _workContextAccessor.WorkContext.AllCurrencies)).OrderBy(x => x.Priority).ToList();
+            var result = Enumerable.Empty<ShippingMethod>();
+            if (!cart.IsTransient())
+            {
+                var shippingRates = await _cartApi.GetAvailableShippingRatesAsync(cart.Id);
+                result = shippingRates.Select(x => x.ToShippingMethod(cart.Currency, _workContextAccessor.WorkContext.AllCurrencies)).OrderBy(x => x.Priority).ToList();
+            }
             return result;
         }
 
@@ -77,7 +84,7 @@ namespace VirtoCommerce.Storefront.Domain.Cart
             return result;
         }
 
-        public async Task<ShoppingCart> SaveChanges(ShoppingCart cart)
+        public virtual async Task<ShoppingCart> SaveChanges(ShoppingCart cart)
         {
             if (cart == null)
             {
@@ -96,7 +103,7 @@ namespace VirtoCommerce.Storefront.Domain.Cart
             return result;
         }
 
-        public async Task<IPagedList<ShoppingCart>> SearchCartsAsync(CartSearchCriteria criteria)
+        public virtual async Task<IPagedList<ShoppingCart>> SearchCartsAsync(CartSearchCriteria criteria)
         {
             if (criteria == null)
             {

@@ -2,11 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Caching.Memory;
-using VirtoCommerce.Storefront.Caching;
-using VirtoCommerce.Storefront.Extensions;
 using VirtoCommerce.Storefront.Model;
 using VirtoCommerce.Storefront.Model.Caching;
 using VirtoCommerce.Storefront.Model.Cart;
@@ -14,6 +11,7 @@ using VirtoCommerce.Storefront.Model.Cart.Services;
 using VirtoCommerce.Storefront.Model.Cart.ValidationErrors;
 using VirtoCommerce.Storefront.Model.Catalog;
 using VirtoCommerce.Storefront.Model.Common;
+using VirtoCommerce.Storefront.Model.Common.Caching;
 using VirtoCommerce.Storefront.Model.Common.Exceptions;
 using VirtoCommerce.Storefront.Model.Marketing;
 using VirtoCommerce.Storefront.Model.Marketing.Services;
@@ -24,7 +22,6 @@ using VirtoCommerce.Storefront.Model.Stores;
 using VirtoCommerce.Storefront.Model.Subscriptions.Services;
 using VirtoCommerce.Storefront.Model.Tax.Services;
 using CacheKey = VirtoCommerce.Storefront.Model.Common.Caching.CacheKey;
-using MemoryCacheExtensions = VirtoCommerce.Storefront.Extensions.MemoryCacheExtensions;
 
 namespace VirtoCommerce.Storefront.Domain
 {
@@ -54,7 +51,7 @@ namespace VirtoCommerce.Storefront.Domain
 
         #region ICartBuilder Members
 
-        public virtual ShoppingCart Cart { get; private set; }
+        public virtual ShoppingCart Cart { get; protected set; }
 
         public virtual async Task TakeCartAsync(ShoppingCart cart)
         {
@@ -222,7 +219,7 @@ namespace VirtoCommerce.Storefront.Domain
             Cart.Shipments.Add(shipment);
 
 
-            if (!string.IsNullOrEmpty(shipment.ShipmentMethodCode))
+            if (!string.IsNullOrEmpty(shipment.ShipmentMethodCode) && !Cart.IsTransient())
             {
                 var availableShippingMethods = await GetAvailableShippingMethodsAsync();
                 var shippingMethod = availableShippingMethods.FirstOrDefault(sm => shipment.ShipmentMethodCode.EqualsInvariant(sm.ShipmentMethodCode) && shipment.ShipmentMethodOption.EqualsInvariant(sm.OptionName));
@@ -262,7 +259,7 @@ namespace VirtoCommerce.Storefront.Domain
             }
             Cart.Payments.Add(payment);
 
-            if (!string.IsNullOrEmpty(payment.PaymentGatewayCode))
+            if (!string.IsNullOrEmpty(payment.PaymentGatewayCode) && !Cart.IsTransient())
             {
                 var availablePaymentMethods = await GetAvailablePaymentMethodsAsync();
                 var paymentMethod = availablePaymentMethods.FirstOrDefault(pm => string.Equals(pm.Code, payment.PaymentGatewayCode, StringComparison.InvariantCultureIgnoreCase));
@@ -385,38 +382,40 @@ namespace VirtoCommerce.Storefront.Domain
             var workContext = _workContextAccessor.WorkContext;
 
             //Request available shipping rates 
-            var retVal = await _cartService.GetAvailableShippingMethodsAsync(Cart);
+            var result = await _cartService.GetAvailableShippingMethodsAsync(Cart);
+            if (!result.IsNullOrEmpty())
+            {
+                //Evaluate promotions cart and apply rewards for available shipping methods
+                var promoEvalContext = Cart.ToPromotionEvaluationContext();
+                await _promotionEvaluator.EvaluateDiscountsAsync(promoEvalContext, result);
 
-            //Evaluate promotions cart and apply rewards for available shipping methods
-            var promoEvalContext = Cart.ToPromotionEvaluationContext();
-            await _promotionEvaluator.EvaluateDiscountsAsync(promoEvalContext, retVal);
-
-            //Evaluate taxes for available shipping rates
-            var taxEvalContext = Cart.ToTaxEvalContext(workContext.CurrentStore);
-            taxEvalContext.Lines.Clear();
-            taxEvalContext.Lines.AddRange(retVal.SelectMany(x => x.ToTaxLines()));
-            await _taxEvaluator.EvaluateTaxesAsync(taxEvalContext, retVal);
-
-            return retVal;
+                //Evaluate taxes for available shipping rates
+                var taxEvalContext = Cart.ToTaxEvalContext(workContext.CurrentStore);
+                taxEvalContext.Lines.Clear();
+                taxEvalContext.Lines.AddRange(result.SelectMany(x => x.ToTaxLines()));
+                await _taxEvaluator.EvaluateTaxesAsync(taxEvalContext, result);
+            }
+            return result;
         }
 
         public virtual async Task<IEnumerable<PaymentMethod>> GetAvailablePaymentMethodsAsync()
         {
             EnsureCartExists();
-            var retVal = await _cartService.GetAvailablePaymentMethodsAsync(Cart);
+            var result = await _cartService.GetAvailablePaymentMethodsAsync(Cart);
+            if (!result.IsNullOrEmpty())
+            {
+                //Evaluate promotions cart and apply rewards for available shipping methods
+                var promoEvalContext = Cart.ToPromotionEvaluationContext();
+                await _promotionEvaluator.EvaluateDiscountsAsync(promoEvalContext, result);
 
-            //Evaluate promotions cart and apply rewards for available shipping methods
-            var promoEvalContext = Cart.ToPromotionEvaluationContext();
-            await _promotionEvaluator.EvaluateDiscountsAsync(promoEvalContext, retVal);
-
-            //Evaluate taxes for available payments 
-            var workContext = _workContextAccessor.WorkContext;
-            var taxEvalContext = Cart.ToTaxEvalContext(workContext.CurrentStore);
-            taxEvalContext.Lines.Clear();
-            taxEvalContext.Lines.AddRange(retVal.SelectMany(x => x.ToTaxLines()));
-            await _taxEvaluator.EvaluateTaxesAsync(taxEvalContext, retVal);
-
-            return retVal;
+                //Evaluate taxes for available payments 
+                var workContext = _workContextAccessor.WorkContext;
+                var taxEvalContext = Cart.ToTaxEvalContext(workContext.CurrentStore);
+                taxEvalContext.Lines.Clear();
+                taxEvalContext.Lines.AddRange(result.SelectMany(x => x.ToTaxLines()));
+                await _taxEvaluator.EvaluateTaxesAsync(taxEvalContext, result);
+            }
+            return result;
         }
 
         public async Task ValidateAsync()

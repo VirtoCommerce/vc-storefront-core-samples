@@ -44,28 +44,17 @@ namespace VirtoCommerce.Storefront.Model.Catalog
 
         public IList<Term> Terms { get; set; } = new List<Term>();
 
+        public IList<string> UserGroups { get; set; } = new List<string>();
+
         public string SortBy { get; set; }
 
         public string VendorId { get; set; }
 
         public bool IsFuzzySearch { get; set; }
 
-        public ProductSearchCriteria Clone()
+        public override object Clone()
         {
-            var result = new ProductSearchCriteria(Language, Currency)
-            {
-                Outline = Outline,
-                VendorId = VendorId,
-                Currency = Currency,
-                Language = Language,
-                Keyword = Keyword,
-                SortBy = SortBy,
-                PageNumber = PageNumber,
-                PageSize = PageSize,
-                ResponseGroup = ResponseGroup,
-                IsFuzzySearch = IsFuzzySearch,
-            };
-
+            var result = base.Clone() as ProductSearchCriteria;
             if (Terms != null)
             {
                 result.Terms = Terms.Select(x => new Term { Name = x.Name, Value = x.Value }).ToArray();
@@ -75,11 +64,10 @@ namespace VirtoCommerce.Storefront.Model.Catalog
         }
 
         private void Parse(NameValueCollection queryString)
-        {
+        {        
+            IsFuzzySearch = queryString.Get("fuzzy").EqualsInvariant(bool.TrueString);
             Keyword = queryString.Get("q") ?? queryString.Get("keyword");
-
             SortBy = queryString.Get("sort_by");
-
             ResponseGroup = EnumUtility.SafeParse(queryString.Get("resp_group"), ItemResponseGroup.ItemSmall | ItemResponseGroup.ItemWithPrices | ItemResponseGroup.Inventory | ItemResponseGroup.ItemWithDiscounts | ItemResponseGroup.ItemWithVendor | ItemResponseGroup.ItemProperties);
             // terms=name1:value1,value2,value3;name2:value1,value2,value3
             Terms = (queryString.GetValues("terms") ?? new string[0])
@@ -89,7 +77,7 @@ namespace VirtoCommerce.Storefront.Model.Catalog
                 .SelectMany(a => a[1].Split(',').Select(v => new Term { Name = a[0], Value = v }))
                 .ToArray();
         }
-        
+
         public override string ToString()
         {
             var result = new List<string>

@@ -92,7 +92,8 @@ namespace VirtoCommerce.Storefront.Domain
                 Name = propertyDto.Name,
                 Type = propertyDto.Type,
                 ValueType = propertyDto.ValueType,
-                IsMultivalue = propertyDto.Multivalue ?? false
+                IsMultivalue = propertyDto.Multivalue ?? false,
+                Hidden = propertyDto.Hidden ?? false
             };
 
             //Set display names and set current display name for requested language
@@ -160,7 +161,7 @@ namespace VirtoCommerce.Storefront.Domain
                 Currency = criteria.Currency?.Code ?? workContext.CurrentCurrency.Code,
                 Pricelists = workContext.CurrentPricelists.Where(p => p.Currency.Equals(workContext.CurrentCurrency)).Select(p => p.Id).ToList(),
                 PriceRange = criteria.PriceRange?.ToNumericRangeDto(),
-                UserGroups = workContext.CurrentUser?.Contact?.UserGroups ?? new List<string>(), // null value disables filtering by user groups
+                UserGroups = criteria.UserGroups,
                 Terms = criteria.Terms.ToStrings(),
                 Sort = criteria.SortBy,
                 Skip = criteria.Start,
@@ -273,7 +274,10 @@ namespace VirtoCommerce.Storefront.Domain
         {
             var result = new Image
             {
-                Url = imageDto.Url.RemoveLeadingUriScheme()
+                Url = imageDto.Url.RemoveLeadingUriScheme(),
+                SortOrder = imageDto.SortOrder,
+                Group = imageDto.Group,
+                LanguageCode = imageDto.LanguageCode
             };
 
             return result;
@@ -299,6 +303,7 @@ namespace VirtoCommerce.Storefront.Domain
             var result = new Product(currentCurrency, currentLanguage)
             {
                 Id = productDto.Id,
+                TitularItemId = productDto.TitularItemId,
                 CatalogId = productDto.CatalogId,
                 CategoryId = productDto.CategoryId,
                 DownloadExpiration = productDto.DownloadExpiration,

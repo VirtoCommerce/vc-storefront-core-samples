@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using VirtoCommerce.Storefront.Infrastructure.Swagger;
 using VirtoCommerce.Storefront.Model.Cart.Services;
 using VirtoCommerce.Storefront.Model.Cart.ValidationErrors;
 using VirtoCommerce.Storefront.Model.Catalog;
@@ -10,6 +11,7 @@ using VirtoCommerce.Storefront.Model.Subscriptions;
 
 namespace VirtoCommerce.Storefront.Model.Cart
 {
+    [SwaggerSchemaId("CartLineItem")]
     public partial class LineItem : Entity, IDiscountable, IValidatable, ITaxable, ICloneable
     {
         public LineItem(Currency currency, Language language)
@@ -312,15 +314,16 @@ namespace VirtoCommerce.Storefront.Model.Cart
 
             DiscountAmount = new Money(Math.Max(0, (ListPrice - SalePrice).Amount), Currency);
 
+            if (Quantity == 0)
+            {
+                return;
+            }
+
             foreach (var reward in lineItemRewards)
             {
-                var discount = reward.ToDiscountModel(ListPrice - DiscountAmount);
-                if (reward.Quantity > 0)
-                {
-                    discount.Amount = discount.Amount * Math.Min(reward.Quantity, Quantity) / Quantity;
-                }
                 if (reward.IsValid)
                 {
+                    var discount = reward.ToDiscountModel(ListPrice - DiscountAmount, Quantity);
                     Discounts.Add(discount);
                     DiscountAmount += discount.Amount;
                 }

@@ -161,8 +161,8 @@ namespace VirtoCommerce.Storefront.Domain
         {
             var result = new CartShipmentItem
             {
+                Id = shipmentItemDto.Id,
                 Quantity = shipmentItemDto.Quantity ?? 0,
-
                 LineItem = cart.Items.FirstOrDefault(x => x.Id == shipmentItemDto.LineItemId)
             };
 
@@ -173,7 +173,9 @@ namespace VirtoCommerce.Storefront.Domain
         {
             var result = new cartDto.ShipmentItem
             {
+                Id = shipmentItem.Id,
                 Quantity = shipmentItem.Quantity,
+                LineItemId = shipmentItem.LineItem.Id,
                 LineItem = shipmentItem.LineItem.ToLineItemDto()
             };
 
@@ -269,7 +271,7 @@ namespace VirtoCommerce.Storefront.Domain
             return retVal;
         }
 
-        public static PaymentMethod ToPaymentMethod(this cartDto.PaymentMethod paymentMethodDto, ShoppingCart cart)
+        public static PaymentMethod ToCartPaymentMethod(this cartDto.PaymentMethod paymentMethodDto, ShoppingCart cart)
         {
             var retVal = new PaymentMethod(cart.Currency)
             {
@@ -510,7 +512,8 @@ namespace VirtoCommerce.Storefront.Domain
                 OrganizationId = cart.OrganizationId,
                 Status = cart.Status,
                 StoreId = cart.StoreId,
-                Type = cart.Type
+                Type = cart.Type,
+                IsAnonymous = cart.IsAnonymous
             };
 
             if (cart.Language != null)

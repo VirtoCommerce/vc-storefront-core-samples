@@ -1,7 +1,8 @@
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Mvc;
 using System.IO;
 using System.Linq;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Mvc;
 using VirtoCommerce.LiquidThemeEngine;
 using VirtoCommerce.Storefront.Extensions;
 using VirtoCommerce.Storefront.Infrastructure;
@@ -12,14 +13,14 @@ using VirtoCommerce.Storefront.Model.StaticContent;
 namespace VirtoCommerce.Storefront.Controllers
 {
     [StorefrontRoute]
-    [ResponseCache(CacheProfileName = "Default")]
+    [AllowAnonymous]
     public class AssetController : StorefrontControllerBase
     {
         private readonly ILiquidThemeEngine _themeEngine;
         private readonly IContentBlobProvider _contentBlobProvider;
         private readonly IHostingEnvironment _hostingEnvironment;
 
-        public AssetController(IWorkContextAccessor workContextAccessor, IStorefrontUrlBuilder urlBuilder, ILiquidThemeEngine themeEngine, 
+        public AssetController(IWorkContextAccessor workContextAccessor, IStorefrontUrlBuilder urlBuilder, ILiquidThemeEngine themeEngine,
                                IContentBlobProvider staticContentBlobProvider, IHostingEnvironment hostingEnvironment)
             : base(workContextAccessor, urlBuilder)
         {
@@ -34,6 +35,7 @@ namespace VirtoCommerce.Storefront.Controllers
         /// </summary>
         /// <returns></returns>
         [HttpGet("themes/localization.json")]
+        [ResponseCache(CacheProfileName = "Default")]
         public ActionResult GetThemeLocalizationJson()
         {
             var retVal = _themeEngine.ReadLocalization();
@@ -47,6 +49,7 @@ namespace VirtoCommerce.Storefront.Controllers
         /// <param name="path"></param>
         /// <returns></returns>
         [HttpGet("themes/assets/{*path}")]
+        [ResponseCache(CacheProfileName = "Default")]
         public ActionResult GetThemeAssets(string path)
         {
             var stream = _themeEngine.GetAssetStream(path);
@@ -62,6 +65,7 @@ namespace VirtoCommerce.Storefront.Controllers
         /// <param name="path"></param>
         /// <returns></returns>
         [HttpGet("assets/{*path}")]
+        [ResponseCache(CacheProfileName = "Default")]
         public ActionResult GetStaticContentAssets(string path)
         {
             var blobPath = _contentBlobProvider.Search(Path.Combine("Pages", WorkContext.CurrentStore.Id, "assets"), path, true).FirstOrDefault();
