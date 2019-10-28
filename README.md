@@ -3,7 +3,9 @@ Samples for [vc-storefront-core](https://github.com/VirtoCommerce/vc-storefront-
 **Source code getting started** and all other related documentation can be found in the original repository https://github.com/VirtoCommerce/vc-storefront-core.
 
 ## This branch
-This, **master**, branch is a copy from the parent *vc-storefront-core* repository without any changes. **Check the branches** for actual samples.
+This, **vc-samples-DemoSearchModule**, branch contains sample code for full-text indexed search API methods available in VC. Changes:
+* `DemoSearchApiController` added to demonstrate and test various search aspects, tips and best practices.
+* `CustomTerm` method in `DemoSearchApiController` is used to demonstrate a custom search term, created in [DemoSearchModule sample module](https://github.com/VirtoCommerce/vc-samples/tree/master/DemoSearchModule).
 
 
 # License
