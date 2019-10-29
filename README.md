@@ -3,7 +3,8 @@ Samples for [vc-storefront-core](https://github.com/VirtoCommerce/vc-storefront-
 **Source code getting started** and all other related documentation can be found in the original repository https://github.com/VirtoCommerce/vc-storefront-core.
 
 ## This branch
-This, **master**, branch is a copy from the parent *vc-storefront-core* repository without any changes. **Check the branches** for actual samples.
+This, **vc-samples-External-PricingModule**, branch contains sample code for using external prices based on [External.PricingModule sample](https://github.com/VirtoCommerce/vc-samples/tree/master/External.PricingModule) sample. Changes:
+* BasePrice included in final price calculations. Check the code in [this commit](https://github.com/VirtoCommerce/vc-storefront-core-samples/commit/89a6499967ec4df8f90fabf2e36110047a529c8a).
 
 
 # License
