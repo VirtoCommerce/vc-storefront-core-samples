@@ -3,7 +3,7 @@ Samples for [vc-storefront-core](https://github.com/VirtoCommerce/vc-storefront-
 **Source code getting started** and all other related documentation can be found in the original repository https://github.com/VirtoCommerce/vc-storefront-core.
 
 ## This branch
-This, **master**, branch is a copy from the parent *vc-storefront-core* repository without any changes. **Check the branches** for actual samples.
+TODO: prepare the sample and define the purpose of this, **vc-samples-External-CustomerReviewsModule**, branch.
 
 
 # License
