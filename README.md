@@ -1,4 +1,5 @@
 Test US commit KP-10
+Test Task commit KP-11 + FIx Bug KP-12
 Samples for [vc-storefront-core](https://github.com/VirtoCommerce/vc-storefront-core)
 ============================================
 **Source code getting started** and all other related documentation can be found in the original repository https://github.com/VirtoCommerce/vc-storefront-core.
