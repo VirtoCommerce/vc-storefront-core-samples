@@ -16,6 +16,7 @@ using VirtoCommerce.Storefront.Model.Common.Exceptions;
 using VirtoCommerce.Storefront.Model.StaticContent;
 using VirtoCommerce.Storefront.Infrastructure;
 using VirtoCommerce.Storefront.Model.Caching;
+using System.Linq;
 
 namespace VirtoCommerce.Storefront.Domain
 {
@@ -61,7 +62,22 @@ namespace VirtoCommerce.Storefront.Domain
             }
             path = NormalizePath(path);
 
-            return await _container.GetBlobReference(path).OpenReadAsync();
+            Stream result = null;
+            try
+            {
+                result = await _container.GetBlobReference(path).OpenReadAsync();
+            }
+            catch (Exception)
+            {
+                //we should not throw an exception for the missed directories and return null as result, because the Azure blob storage does not allow us to check if directories exist
+                //and PathExists method will always return true for these paths.                
+                if (!string.IsNullOrEmpty(Path.GetExtension(path)))
+                {
+                    //Throw the not found exception for files
+                    throw;
+                }
+            }
+            return result;
         }
 
         /// <summary>
@@ -101,13 +117,23 @@ namespace VirtoCommerce.Storefront.Domain
            {
                cacheEntry.AddExpirationToken(ContentBlobCacheRegion.CreateChangeToken());
 
-               // If requested path is a directory we should always return true because Azure blob storage does not support checking if directories exist
-               var result = string.IsNullOrEmpty(Path.GetExtension(path));
-               if (!result)
+               var isDirectory = string.IsNullOrEmpty(Path.GetExtension(path));
+               var result = false;
+
+               if (isDirectory)
                {
-                   var url = GetAbsoluteUrl(path);
+                   //There is only one way to check if the blob directory exists is to request its contents.
+                   BlobContinuationToken token = null;
+                   var operationContext = new OperationContext();
+                   var directory = GetCloudBlobDirectory(path);
+                   var resultSegment = await directory.ListBlobsSegmentedAsync(true, BlobListingDetails.Metadata, 1, token, _options.BlobRequestOptions, operationContext);
+                   result = resultSegment.Results.Any();
+               }
+               else
+               {
                    try
                    {
+                       var url = GetAbsoluteUrl(path);
                        result = await (await _cloudBlobClient.GetBlobReferenceFromServerAsync(new Uri(url))).ExistsAsync();
                    }
                    catch (Exception)
@@ -115,6 +141,7 @@ namespace VirtoCommerce.Storefront.Domain
                        //Azure blob storage client does not provide method to check blob url exist without throwing exception
                    }
                }
+
                return result;
            });
         }
@@ -136,7 +163,7 @@ namespace VirtoCommerce.Storefront.Domain
         {
             var retVal = new List<string>();
             path = NormalizePath(path);
-            //Search pattern may contains part of path /path/*.jpg then nedd add this part to base path
+            //Search pattern may contains a part of path /path/*.jpg then need to add this part to a base path
             searchPattern = searchPattern.Replace('\\', '/').TrimStart('/');
             var subDir = NormalizePath(Path.GetDirectoryName(searchPattern));
             if (!string.IsNullOrEmpty(subDir))
@@ -144,29 +171,38 @@ namespace VirtoCommerce.Storefront.Domain
                 path = path.TrimEnd('/') + "/" + subDir;
                 searchPattern = Path.GetFileName(searchPattern);
             }
-            var context = new OperationContext();
-            var blobItems = new List<IListBlobItem>();
-            BlobContinuationToken token = null;
-            var operationContext = new OperationContext();
-            var directory = GetCloudBlobDirectory(path);
-            do
-            {
-                var resultSegment = await directory.ListBlobsSegmentedAsync(recursive, BlobListingDetails.Metadata, null, token, _options.BlobRequestOptions, operationContext);
-                token = resultSegment.ContinuationToken;
-                blobItems.AddRange(resultSegment.Results);
-            } while (token != null);
 
-            // Loop over items within the container and output the length and URI.
-            foreach (var item in blobItems)
+            //Try to check that passed search pattern doesn't contain mask wildcard characters
+            //this means that a direct link to the resource is passed, and we do not need to perform any search
+            var directPath = Path.Combine(path, searchPattern);
+            if (!searchPattern.FilePathHasMaskChars() && await PathExistsAsync(directPath))
             {
-                var block = item as CloudBlockBlob;
-                if (block != null)
+                retVal.Add(directPath);
+            }
+            else
+            {
+                var blobItems = new List<IListBlobItem>();
+                BlobContinuationToken token = null;
+                var operationContext = new OperationContext();
+                var directory = GetCloudBlobDirectory(path);
+                do
                 {
-                    var blobRelativePath = GetRelativeUrl(block.Uri.ToString());
-                    var fileName = Path.GetFileName(Uri.UnescapeDataString(block.Uri.ToString()));
-                    if (fileName.FitsMask(searchPattern))
+                    var resultSegment = await directory.ListBlobsSegmentedAsync(recursive, BlobListingDetails.Metadata, null, token, _options.BlobRequestOptions, operationContext);
+                    token = resultSegment.ContinuationToken;
+                    blobItems.AddRange(resultSegment.Results);
+                } while (token != null);
+
+                // Loop over items within the container and output the length and URI.
+                foreach (var item in blobItems)
+                {
+                    if (item is CloudBlockBlob block)
                     {
-                        retVal.Add(blobRelativePath);
+                        var blobRelativePath = GetRelativeUrl(block.Uri.ToString());
+                        var fileName = Path.GetFileName(Uri.UnescapeDataString(block.Uri.ToString()));
+                        if (fileName.FitsMask(searchPattern))
+                        {
+                            retVal.Add(blobRelativePath);
+                        }
                     }
                 }
             }

@@ -1,7 +1,5 @@
-using System.Text.Encodings.Web;
 using Microsoft.ApplicationInsights.AspNetCore.Extensions;
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.DependencyInjection;
 using VirtoCommerce.Storefront.Extensions;
 using VirtoCommerce.Storefront.Infrastructure;
 using VirtoCommerce.Storefront.Model;
@@ -15,8 +13,7 @@ namespace VirtoCommerce.Storefront.Domain
         {
             HttpContext = httpContext;
 
-            var htmlEncoder = httpContext.RequestServices.GetRequiredService<HtmlEncoder>();
-            var qs = HttpContext.Request.Query.ToNameValueCollection(htmlEncoder);
+            var qs = HttpContext.Request.Query.ToNameValueCollection();
 
             WorkContext = new WorkContext
             {
@@ -31,6 +28,9 @@ namespace VirtoCommerce.Storefront.Domain
                 pageSize = options.PageSizeMaxValue;
             }
             WorkContext.PageSize = pageSize;
+            //To interpret as true the value of preview_mode from the query string according to its actual presence, since another value of this parameter can be passed.
+            WorkContext.IsPreviewMode = !string.IsNullOrEmpty(WorkContext.QueryString.Get("preview_mode"));
+
         }
 
         public HttpContext HttpContext { get; }

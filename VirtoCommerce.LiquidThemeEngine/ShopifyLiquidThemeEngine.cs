@@ -18,7 +18,6 @@ using Newtonsoft.Json.Linq;
 using Scriban;
 using Scriban.Parsing;
 using Scriban.Runtime;
-using VirtoCommerce.LiquidThemeEngine.Filters;
 using VirtoCommerce.LiquidThemeEngine.Scriban;
 using VirtoCommerce.Storefront.Model;
 using VirtoCommerce.Storefront.Model.Caching;
@@ -47,17 +46,19 @@ namespace VirtoCommerce.LiquidThemeEngine
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly IStorefrontMemoryCache _memoryCache;
         private readonly IContentBlobProvider _themeBlobProvider;
+        private readonly ISassFileManager _sassFileManager;
 
-        public ShopifyLiquidThemeEngine(IStorefrontMemoryCache memoryCache, IWorkContextAccessor workContextAccessor,
-                                        IHttpContextAccessor httpContextAccessor,
-                                        IStorefrontUrlBuilder storeFrontUrlBuilder, IContentBlobProvider contentBlobProvder, IOptions<LiquidThemeEngineOptions> options)
+        public ShopifyLiquidThemeEngine(IStorefrontMemoryCache memoryCache, IWorkContextAccessor workContextAccessor, IHttpContextAccessor httpContextAccessor,
+                                        IStorefrontUrlBuilder storeFrontUrlBuilder, IContentBlobProvider contentBlobProvider, ISassFileManager sassFileManager, IOptions<LiquidThemeEngineOptions> options)
         {
             _workContextAccessor = workContextAccessor;
             _httpContextAccessor = httpContextAccessor;
             UrlBuilder = storeFrontUrlBuilder;
             _options = options.Value;
             _memoryCache = memoryCache;
-            _themeBlobProvider = contentBlobProvder;
+            _themeBlobProvider = contentBlobProvider;
+            _sassFileManager = sassFileManager;
+            SassCompiler.FileManager = sassFileManager;
         }
 
         /// <summary>
@@ -85,7 +86,7 @@ namespace VirtoCommerce.LiquidThemeEngine
         /// </summary>
         public string CurrentThemeName => !string.IsNullOrEmpty(WorkContext.CurrentStore.ThemeName) ? WorkContext.CurrentStore.ThemeName : "default";
 
-        public string CurrentThemeSettingPath => Path.Combine(CurrentThemePath, "config", "settings_data.json");
+        public string CurrentThemeSettingPath => Path.Combine(CurrentThemePath, "config", GetSettingsFilePath());
         public string CurrentThemeLocalePath => Path.Combine(CurrentThemePath, "locales");
         /// <summary>
         /// The path for current theme 
@@ -93,7 +94,12 @@ namespace VirtoCommerce.LiquidThemeEngine
         private string CurrentThemePath => Path.Combine("Themes", WorkContext.CurrentStore.Id, CurrentThemeName);
 
         //Relative path to the discovery of theme resources that weren't found by the current path.
-        private string BaseThemePath => !string.IsNullOrEmpty(_options.BaseThemeName) ? Path.Combine("Themes", _options.BaseThemeName, "default") : null;
+        private string BaseThemePath =>
+            !string.IsNullOrEmpty(_options.BaseThemePath) ? Path.Combine("Themes", _options.BaseThemePath) :
+#pragma warning disable 618
+            // We need to use obsolete value here for backward compatibility.
+            !string.IsNullOrEmpty(_options.BaseThemeName) ? Path.Combine("Themes", _options.BaseThemeName, "default") : null;
+#pragma warning restore 618
         private string BaseThemeSettingPath => BaseThemePath != null ? Path.Combine(BaseThemePath, "config", "settings_data.json") : null;
         public string BaseThemeLocalePath => BaseThemePath != null ? Path.Combine(BaseThemePath, "locales") : null;
 
@@ -144,8 +150,8 @@ namespace VirtoCommerce.LiquidThemeEngine
         {
             Stream retVal = null;
             var filePathWithoutExtension = Path.Combine(Path.GetDirectoryName(filePath), Path.GetFileNameWithoutExtension(filePath));
-            //file.ext => file.ext || file || file.liquid || file.ext.liquid        
-            var searchPatterns = new[] { filePath, filePathWithoutExtension, string.Format(_liquidTemplateFormat, filePathWithoutExtension), string.Format(_liquidTemplateFormat, filePath) };
+            //file.ext => file.ext || file.liquid || file.ext.liquid || file     
+            var searchPatterns = new[] { filePath, string.Format(_liquidTemplateFormat, filePathWithoutExtension), string.Format(_liquidTemplateFormat, filePath), filePathWithoutExtension };
 
 
             string currentThemeFilePath = null;
@@ -185,6 +191,7 @@ namespace VirtoCommerce.LiquidThemeEngine
                 try
                 {
                     //handle scss resources
+                    _sassFileManager.CurrentDirectory = Path.GetDirectoryName(filePath);
                     var result = SassCompiler.Compile(content);
                     content = result.CompiledContent;
 
@@ -210,7 +217,7 @@ namespace VirtoCommerce.LiquidThemeEngine
             var cacheKey = CacheKey.With(GetType(), "GetAssetHash", filePath);
             return _memoryCache.GetOrCreateExclusive(cacheKey, (cacheEntry) =>
             {
-                cacheEntry.AddExpirationToken(new CompositeChangeToken(new[] { ThemeEngineCacheRegion.CreateChangeToken(), _themeBlobProvider.Watch(filePath) }));
+                cacheEntry.AddExpirationToken(new CompositeChangeToken(new[] { ThemeEngineCacheRegion.CreateChangeToken(), _themeBlobProvider.Watch(filePath), _themeBlobProvider.Watch(CurrentThemeSettingPath) }));
 
                 using (var stream = GetAssetStreamAsync(filePath).GetAwaiter().GetResult())
                 {
@@ -345,44 +352,28 @@ namespace VirtoCommerce.LiquidThemeEngine
         public IDictionary<string, object> GetSettings(string defaultValue = null)
         {
             var cacheKey = CacheKey.With(GetType(), "GetSettings", CurrentThemeSettingPath, defaultValue);
-            return _memoryCache.GetOrCreateExclusive(cacheKey, (cacheItem) =>
+            return _memoryCache.GetOrCreateExclusive(cacheKey, cacheItem =>
             {
                 cacheItem.AddExpirationToken(new CompositeChangeToken(new[] { ThemeEngineCacheRegion.CreateChangeToken(), _themeBlobProvider.Watch(CurrentThemeSettingPath) }));
-                var retVal = new Dictionary<string, object>().WithDefaultValue(defaultValue);
-                //Load all data from current theme config
-                var resultSettings = InnerGetAllSettings(_themeBlobProvider, CurrentThemeSettingPath);
-                if (resultSettings == null && BaseThemeSettingPath != null)
-                {
-                    resultSettings = InnerGetAllSettings(_themeBlobProvider, BaseThemeSettingPath);
-                }
-                if (resultSettings != null)
-                {
-                    //Get actual preset from merged config
-                    var currentPreset = resultSettings.GetValue("current");
-                    if (currentPreset is JValue)
-                    {
-                        var currentPresetName = ((JValue)currentPreset).Value.ToString();
-                        if (!(resultSettings.GetValue("presets") is JObject presets) || !presets.Children().Any())
-                        {
-                            throw new StorefrontException("Setting presets not defined");
-                        }
 
-                        IList<JProperty> allPresets = presets.Children().Cast<JProperty>().ToList();
-                        resultSettings = allPresets.FirstOrDefault(p => p.Name == currentPresetName).Value as JObject;
-                        if (resultSettings == null)
-                        {
-                            throw new StorefrontException($"Setting preset with name '{currentPresetName}' not found");
-                        }
-                    }
-                    if (currentPreset is JObject)
-                    {
-                        resultSettings = (JObject)currentPreset;
-                    }
+                JObject result;
+                var baseThemeSettings = new JObject();
+                var currentThemeSettings = result = GetCurrentSettingsPreset(InnerGetAllSettings(_themeBlobProvider, CurrentThemeSettingPath));
 
-                    retVal = resultSettings.ToObject<Dictionary<string, object>>().ToDictionary(x => x.Key, x => x.Value).WithDefaultValue(defaultValue);
+                //Try to load settings from base theme path and merge them with resources for local theme
+                if ((_options.MergeBaseSettings || currentThemeSettings == null) && !string.IsNullOrEmpty(BaseThemeSettingPath))
+                {
+                    cacheItem.AddExpirationToken(new CompositeChangeToken(new[] { ThemeEngineCacheRegion.CreateChangeToken(), _themeBlobProvider.Watch(BaseThemeSettingPath) }));
+                    result = baseThemeSettings = GetCurrentSettingsPreset(InnerGetAllSettings(_themeBlobProvider, BaseThemeSettingPath));
                 }
 
-                return retVal;
+                if (_options.MergeBaseSettings)
+                {
+                    result = baseThemeSettings;
+                    result.Merge(currentThemeSettings ?? new JObject(), new JsonMergeSettings { MergeArrayHandling = MergeArrayHandling.Merge });
+                }
+
+                return result.ToObject<Dictionary<string, object>>().ToDictionary(x => x.Key, x => x.Value).WithDefaultValue(defaultValue);
             });
         }
 
@@ -473,18 +464,48 @@ namespace VirtoCommerce.LiquidThemeEngine
                 throw new ArgumentNullException(nameof(settingsPath));
             }
 
-            JObject retVal = null;
+            var result = new JObject();
 
             if (themeBlobProvider.PathExists(settingsPath))
             {
                 using (var stream = themeBlobProvider.OpenRead(settingsPath))
                 {
-                    retVal = JsonConvert.DeserializeObject<JObject>(stream.ReadToString());
+                    result = JsonConvert.DeserializeObject<JObject>(stream.ReadToString());
                 }
             }
-            return retVal;
+            return result;
         }
 
+        /// <summary>
+        /// Get actual preset from config
+        /// </summary>
+        /// <returns></returns>
+        private static JObject GetCurrentSettingsPreset(JObject allSettings)
+        {
+            var result = allSettings;
+            var currentPreset = allSettings.GetValue("current");
+            if (currentPreset is JValue currentPresetValue)
+            {
+                var currentPresetName = currentPresetValue.Value.ToString();
+                if (!(allSettings.GetValue("presets") is JObject presets) || !presets.Children().Any())
+                {
+                    throw new StorefrontException("Setting presets not defined");
+                }
+
+                IList<JProperty> allPresets = presets.Children().Cast<JProperty>().ToList();
+                result = allPresets.FirstOrDefault(p => p.Name == currentPresetName)?.Value as JObject;
+                if (result == null)
+                {
+                    throw new StorefrontException($"Setting preset with name '{currentPresetName}' not found");
+                }
+            }
+            if (currentPreset is JObject preset)
+            {
+                result = preset;
+            }
+
+            return result;
+        }
 
         private string ReadTemplateByPath(string templatePath)
         {
@@ -504,6 +525,10 @@ namespace VirtoCommerce.LiquidThemeEngine
             });
         }
 
-
+        private string GetSettingsFilePath()
+        {
+            var prefix = _httpContextAccessor.HttpContext.Request.Query["preview_mode"];
+            return prefix.IsNullOrEmpty() ? "settings_data.json" : $"drafts\\{prefix}_settings_data.json";
+        }
     }
 }
