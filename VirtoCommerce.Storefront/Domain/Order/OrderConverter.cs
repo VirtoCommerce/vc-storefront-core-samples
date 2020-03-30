@@ -18,7 +18,13 @@ namespace VirtoCommerce.Storefront.Domain
         {
             var result = new orderDto.CustomerOrderSearchCriteria
             {
+                Keyword = criteria.Keyword,
                 CustomerId = criteria.CustomerId,
+                StartDate = criteria.StartDate,
+                EndDate = criteria.EndDate,
+                Status = criteria.Status,
+                Statuses = criteria.Statuses,
+                StoreIds = criteria.StoreIds,
 
                 Skip = criteria.Start,
                 Take = criteria.PageSize,
@@ -472,7 +478,7 @@ namespace VirtoCommerce.Storefront.Domain
             {
                 Name = taxDetailDto.Name,
                 Amount = new Money(taxDetailDto.Amount ?? 0, currency),
-                Rate = new Money(taxDetailDto.Rate ?? 0, currency)
+                Rate = new Money(taxDetailDto.Rate ?? 0, currency),
             };
             return result;
         }

@@ -203,7 +203,8 @@ namespace VirtoCommerce.Storefront.Domain
                 TotalWithTax = new Money(shipmentDto.TotalWithTax ?? 0, cart.Currency),
                 DiscountAmountWithTax = new Money(shipmentDto.DiscountAmountWithTax ?? 0, cart.Currency),
                 TaxTotal = new Money(shipmentDto.TaxTotal ?? 0, cart.Currency),
-                TaxPercentRate = (decimal?)shipmentDto.TaxPercentRate ?? 0m
+                TaxPercentRate = (decimal?)shipmentDto.TaxPercentRate ?? 0m,
+                TaxType = shipmentDto.TaxType
             };
 
             if (shipmentDto.DeliveryAddress != null)
@@ -245,7 +246,8 @@ namespace VirtoCommerce.Storefront.Domain
                 Currency = shipment.Currency != null ? shipment.Currency.Code : null,
                 DiscountAmount = shipment.DiscountAmount != null ? (double?)shipment.DiscountAmount.InternalAmount : null,
                 Price = shipment.Price != null ? (double?)shipment.Price.InternalAmount : null,
-                TaxPercentRate = (double)shipment.TaxPercentRate
+                TaxPercentRate = (double)shipment.TaxPercentRate,
+                TaxType = shipment.TaxType
             };
 
             if (shipment.DeliveryAddress != null)
@@ -560,7 +562,10 @@ namespace VirtoCommerce.Storefront.Domain
                     Name = lineItem.Name,
                     TaxType = lineItem.TaxType,
                     //Special case when product have 100% discount and need to calculate tax for old value
-                    Amount = lineItem.ExtendedPrice.Amount > 0 ? lineItem.ExtendedPrice : lineItem.SalePrice
+                    Amount = lineItem.ExtendedPrice.Amount > 0 ? lineItem.ExtendedPrice : lineItem.SalePrice,
+                    Quantity = lineItem.Quantity,
+                    Price = lineItem.PlacedPrice,
+                    TypeName = "item"
                 });
             }
 
@@ -573,7 +578,8 @@ namespace VirtoCommerce.Storefront.Domain
                     Name = shipment.ShipmentMethodOption,
                     TaxType = shipment.TaxType,
                     //Special case when shipment have 100% discount and need to calculate tax for old value
-                    Amount = shipment.Total.Amount > 0 ? shipment.Total : shipment.Price
+                    Amount = shipment.Total.Amount > 0 ? shipment.Total : shipment.Price,
+                    TypeName = "shipment"
                 };
                 result.Lines.Add(totalTaxLine);
 
@@ -592,7 +598,8 @@ namespace VirtoCommerce.Storefront.Domain
                     Name = payment.PaymentGatewayCode,
                     TaxType = payment.TaxType,
                     //Special case when shipment have 100% discount and need to calculate tax for old value
-                    Amount = payment.Total.Amount > 0 ? payment.Total : payment.Price
+                    Amount = payment.Total.Amount > 0 ? payment.Total : payment.Price,
+                    TypeName = "payment"
                 };
                 result.Lines.Add(totalTaxLine);
             }
@@ -604,7 +611,8 @@ namespace VirtoCommerce.Storefront.Domain
             var result = new TaxDetail(currency)
             {
                 Name = taxDeatilDto.Name,
-                Rate = new Money(taxDeatilDto.Rate ?? 0, currency)
+                Rate = new Money(taxDeatilDto.Rate ?? 0, currency),
+                Amount = new Money(taxDeatilDto.Amount ?? 0, currency),
             };
             return result;
         }
@@ -614,7 +622,8 @@ namespace VirtoCommerce.Storefront.Domain
             var result = new cartDto.TaxDetail
             {
                 Name = taxDetail.Name,
-                Rate = (double)taxDetail.Rate.Amount
+                Rate = (double)taxDetail.Rate.Amount,
+                Amount = (double)taxDetail.Amount.Amount,
             };
             return result;
         }
@@ -655,6 +664,7 @@ namespace VirtoCommerce.Storefront.Domain
             var result = new LineItem(currency, language)
             {
                 Id = lineItemDto.Id,
+                IsReadOnly = lineItemDto.IsReadOnly ?? false,
                 CatalogId = lineItemDto.CatalogId,
                 CategoryId = lineItemDto.CategoryId,
                 ImageUrl = lineItemDto.ImageUrl,
@@ -727,6 +737,7 @@ namespace VirtoCommerce.Storefront.Domain
             var retVal = new cartDto.LineItem
             {
                 Id = lineItem.Id,
+                IsReadOnly = lineItem.IsReadOnly,
                 CatalogId = lineItem.CatalogId,
                 CategoryId = lineItem.CategoryId,
                 ImageUrl = lineItem.ImageUrl,
@@ -788,6 +799,7 @@ namespace VirtoCommerce.Storefront.Domain
                 Price = (double)lineItem.SalePrice.Amount,
                 Quantity = lineItem.Quantity,
                 InStockQuantity = lineItem.InStockQuantity,
+                Outline = lineItem.Product.Outline,
                 Variations = null // TODO
             };
 
