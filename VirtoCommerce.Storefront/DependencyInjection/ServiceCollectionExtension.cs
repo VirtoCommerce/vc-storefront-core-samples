@@ -62,12 +62,12 @@ namespace VirtoCommerce.Storefront.DependencyInjection
         {
             services.AddHttpClient(PlatformEndpointHttpClientName)
                   .ConfigureHttpClient((sp, httpClient) =>
-        {
-            var platformEndpointOptions = sp.GetRequiredService<IOptions<PlatformEndpointOptions>>().Value;
-            httpClient.BaseAddress = platformEndpointOptions.Url;
-            httpClient.Timeout = platformEndpointOptions.RequestTimeout;
-        })
-                   .ConfigurePrimaryHttpMessageHandler(x => new HttpClientHandler() { AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate })
+                  {
+                      var platformEndpointOptions = sp.GetRequiredService<IOptions<PlatformEndpointOptions>>().Value;
+                      httpClient.BaseAddress = platformEndpointOptions.Url;
+                      httpClient.Timeout = platformEndpointOptions.RequestTimeout;
+                  })
+                   .ConfigurePrimaryHttpMessageHandler(x => new HttpClientHandler() { AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate, UseCookies = false })
                    .AddHttpMessageHandler(sp => sp.GetService<AuthenticationHandlerFactory>().CreateAuthHandler());
 
 
@@ -101,6 +101,7 @@ namespace VirtoCommerce.Storefront.DependencyInjection
             services.AddSingleton<ServiceClientCredentials>(sp => new EmptyServiceClientCredentials());
             services.AddTransient<ApiKeySecretAuthHandler>();
             services.AddTransient<UserPasswordAuthHandler>();
+            services.AddTransient<ClientCredentialsAuthHandler>();
             services.AddSingleton<AuthenticationHandlerFactory>();
             services.AddHttpClient();
             services.AddPlatformEnpointHttpClient();
@@ -182,7 +183,8 @@ namespace VirtoCommerce.Storefront.DependencyInjection
             {
                 throw new ArgumentNullException(nameof(services));
             }
-
+            
+            services.AddSingleton<ISassFileManager, SassFileManager>();
             services.AddSingleton<ILiquidThemeEngine, ShopifyLiquidThemeEngine>();
             services.AddSingleton<ILiquidViewEngine, LiquidThemedViewEngine>();
             if (setupAction != null)
