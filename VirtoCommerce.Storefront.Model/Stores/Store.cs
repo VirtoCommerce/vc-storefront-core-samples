@@ -132,7 +132,7 @@ namespace VirtoCommerce.Storefront.Model.Stores
         /// </summary>
         public bool IsSpa { get; set; }
 
-        public bool CustomerReviewsEnabled => Settings.GetSettingValue("CustomerReviews.CustomerReviewsEnabled", false);
+        public bool CustomerReviewsEnabled { get; set; }
 
         public decimal FixedTaxRate { get; set; }
 
